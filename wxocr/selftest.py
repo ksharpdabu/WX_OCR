@@ -38,6 +38,30 @@ def run(report_path):
             raise RuntimeError("Precise mode failed or reloaded the models")
         report["warm_recognition_seconds"] = times
         report["warm_median_seconds"] = median(times)
+        from . import startup
+        if startup.SUPPORTED:
+            # Exercise the native registry API under a disposable name. Never
+            # enable or disable the actual user's QingJie login entry in tests.
+            import uuid
+            previous_name = startup.VALUE_NAME
+            startup.VALUE_NAME = "QingJieSelfTest-" + uuid.uuid4().hex
+            try:
+                assert not startup.is_enabled()
+                startup.set_enabled(True)
+                assert startup.is_enabled()
+                import winreg
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, startup.RUN_KEY) as key:
+                    command, _ = winreg.QueryValueEx(key, startup.VALUE_NAME)
+                assert command == startup.startup_command()
+                assert command.endswith(" --autostart")
+                startup.set_enabled(False)
+                assert not startup.is_enabled()
+                report["windows_autostart_registry"] = True
+            finally:
+                try:
+                    startup.set_enabled(False)
+                finally:
+                    startup.VALUE_NAME = previous_name
         from .app import MainWindow
         window = MainWindow()
         try:
