@@ -2,6 +2,22 @@
 
 类似微信操作方式的桌面截图工具：拖动框选、复制到剪贴板、保存 PNG、本地中英文 OCR、全局快捷键和系统托盘。
 
+## 效果截图
+
+以下为程序实际运行界面的离屏截图；Linux 下“开机启动”置灰，Windows 下可勾选。
+
+**中英文 OCR 识别**：左侧预览原图，右侧编辑、复制识别结果，下方显示实际耗时。
+
+![青截 0.3 中英文 OCR 识别结果](docs/screenshots/ocr-result.png)
+
+**框选截图**：拖动选择区域后，可复制、保存或识别文字，支持 Enter / Esc。
+
+![青截框选区域与截图工具栏](docs/screenshots/capture-selection.png)
+
+**设置**：自定义全局快捷键，开启或关闭 Windows 登录启动。
+
+![青截快捷键与开机启动设置](docs/screenshots/settings.png)
+
 ## 安装运行
 
 推荐 Python 3.11 或 3.12（64 位），在**自己的桌面电脑**运行：
@@ -53,10 +69,10 @@ Windows 打包流程会比较旧版/优化版在相同中英文图片上的预�
 
 ```bash
 python -m pip install pyinstaller
-python -m PyInstaller --noconfirm --windowed --name QingJie --collect-all rapidocr_onnxruntime --collect-all onnxruntime --collect-submodules pynput main.py
+python -m PyInstaller --noconfirm --windowed --name QingJie --collect-all rapidocr_onnxruntime --collect-all onnxruntime --collect-submodules pynput --add-data "wxocr/assets:wxocr/assets" main.py
 ```
 
-产物在 `dist/QingJie/`，需分发整个文件夹；包括 OCR 模型，体积较大。当前提供源码与打包命令，未生成或签名 Windows/macOS 安装包。
+产物在 `dist/QingJie/`，需分发整个文件夹；包括 OCR 模型，体积较大。Windows 便携包已通过构建与自检；尚未提供签名的 Windows/macOS 安装程序。
 
 ## 验证
 
