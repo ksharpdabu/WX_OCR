@@ -8,16 +8,12 @@ def run(report_path):
     report = {"ok": False}
     try:
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QColor, QImage, QPainter, QFont
+        from PySide6.QtGui import QImage
         from .ocr import OCRWorker
         app = QApplication.instance() or QApplication([])
-        image = QImage(700, 140, QImage.Format.Format_RGB32)
-        image.fill(QColor('white'))
-        painter = QPainter(image)
-        painter.setPen(QColor('black'))
-        painter.setFont(QFont('Arial', 40))
-        painter.drawText(25, 90, 'HELLO OCR 123')
-        painter.end()
+        image = QImage(str(Path(__file__).parent / 'assets' / 'ocr-sample.png'))
+        if image.isNull():
+            raise RuntimeError('Bundled OCR test image is missing')
         worker = OCRWorker()
         results, errors = [], []
         worker.finished.connect(results.append)
@@ -25,7 +21,7 @@ def run(report_path):
         worker.recognize(image)
         if errors:
             raise RuntimeError(errors[0])
-        if not results or 'HELLO' not in results[0].upper() or '123' not in results[0]:
+        if not results or 'HELLO' not in results[0].upper() or '123' not in results[0] or '微信' not in results[0]:
             raise RuntimeError(f'OCR result mismatch: {results}')
         from .app import MainWindow
         window = MainWindow()

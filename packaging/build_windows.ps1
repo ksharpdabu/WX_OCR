@@ -3,7 +3,7 @@ python -m pip install --upgrade pip
 if ($LASTEXITCODE -ne 0) { throw 'pip upgrade failed' }
 python -m pip install -r requirements.txt 'pyinstaller>=6.11,<7'
 if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
-python -m PyInstaller --noconfirm --clean --windowed --name QingJie --collect-all rapidocr_onnxruntime --collect-all onnxruntime --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 main.py
+python -m PyInstaller --noconfirm --clean --windowed --name QingJie --collect-all rapidocr_onnxruntime --collect-all onnxruntime --add-data "wxocr/assets:wxocr/assets" --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 main.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed' }
 Copy-Item packaging/Windows使用说明.txt dist/QingJie/使用说明.txt
 python -m pip freeze | Out-File -Encoding utf8 dist/QingJie/build-dependencies.txt
