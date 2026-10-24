@@ -1,0 +1,42 @@
+name: Windows portable package
+on:
+  pull_request:
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'packaging/**'
+      - '.github/workflows/windows-package.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Build and test Windows executable
+        shell: pwsh
+        run: ./packaging/build_windows.ps1
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: QingJie-Windows-x64
+          path: |
+            dist/QingJie-Windows-x64.zip
+            dist/SHA256.txt
+            dist/self-test.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-diagnostics
+          path: |
+            dist/self-test.json
+            build/QingJie/warn-QingJie.txt
