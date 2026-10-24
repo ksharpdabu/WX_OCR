@@ -1,13 +1,14 @@
 import sys
 from datetime import datetime
 from pathlib import Path
+from time import perf_counter
 
 from PySide6.QtCore import QSettings, QThread, QTimer, Signal, Qt
 from PySide6.QtGui import QAction, QColor, QCursor, QIcon, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QTextEdit, QLineEdit, QGroupBox, QFormLayout, QMessageBox,
-    QFileDialog, QSystemTrayIcon, QMenu, QSplitter,
+    QFileDialog, QSystemTrayIcon, QMenu, QSplitter, QCheckBox,
 )
 from .capture import CaptureOverlay
 from .hotkeys import normalize_hotkey, pynput_hotkey
@@ -16,12 +17,12 @@ from .ocr import OCRWorker
 
 class MainWindow(QMainWindow):
     capture_requested = Signal(bool)
-    ocr_requested = Signal(QImage)
+    ocr_requested = Signal(QImage, bool)
     hotkey_failed = Signal(str)
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("青截 · 截图与文字识别")
+        self.setWindowTitle("青截 0.2 · 截图与文字识别")
         self.resize(920, 680)
         self.settings = QSettings("WXOCR", "QingJie")
         self.listener = None
@@ -36,12 +37,15 @@ class MainWindow(QMainWindow):
         self.worker.finished.connect(self.ocr_finished)
         self.worker.failed.connect(self.ocr_failed)
         self.thread.finished.connect(self.worker.deleteLater)
-        self.thread.start()
         self.capture_requested.connect(self.capture)
         self.hotkey_failed.connect(self.report_hotkey_error)
         self.build_ui()
         self.build_tray()
         self.apply_hotkeys(initial=True)
+        self.worker.prepared.connect(lambda: self.engine_status.setText("OCR 已就绪 · 模型常驻内存"))
+        self.worker.preparation_failed.connect(self.engine_status.setText)
+        self.thread.started.connect(self.worker.warmup)
+        self.thread.start()
 
     def build_ui(self):
         root = QWidget()
@@ -74,6 +78,10 @@ class MainWindow(QMainWindow):
         self.text = QTextEdit()
         self.text.setPlaceholderText("识别出的文字会显示在这里…")
         r.addWidget(self.text)
+        self.precise = QCheckBox("精细识别（适合小字、密集文本，较慢）")
+        self.precise.setChecked(self.settings.value("precise_ocr", False, type=bool))
+        self.precise.toggled.connect(lambda checked: self.settings.setValue("precise_ocr", checked))
+        r.addWidget(self.precise)
         buttons = QHBoxLayout()
         self.recognize_button = QPushButton("识别当前图片")
         self.recognize_button.clicked.connect(self.recognize)
@@ -97,6 +105,8 @@ class MainWindow(QMainWindow):
         self.status = QLabel("就绪 · 图片与识别结果仅保存在本机")
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
+        self.engine_status = QLabel("OCR 正在后台准备 · 准备后可快速识别")
+        layout.addWidget(self.engine_status)
         self.setStyleSheet("QMainWindow {background:#fafcfb} QPushButton {background:#e3f4e9;color:#155c3d;border:1px solid #c3e4d0;border-radius:6px;padding:9px;} QPushButton:hover {background:#c8ead6} QLineEdit,QTextEdit {background:white;border:1px solid #d3dfd7;border-radius:5px;padding:7px;} QGroupBox {border:1px solid #d3dfd7;border-radius:7px;margin-top:12px;padding-top:14px;}")
 
     def build_tray(self):
@@ -254,15 +264,17 @@ class MainWindow(QMainWindow):
         if self.busy or self.image.isNull():
             return
         self.busy = True
+        self.ocr_started = perf_counter()
         self.recognize_button.setEnabled(False)
-        self.status.setText("正在本地识别…首次加载模型可能需要几秒")
-        self.ocr_requested.emit(self.image.toImage().copy())
+        self.status.setText("正在本地识别…")
+        self.ocr_requested.emit(self.image.toImage().copy(), self.precise.isChecked())
 
     def ocr_finished(self, text):
         self.busy = False
         self.recognize_button.setEnabled(True)
         self.text.setPlainText(text)
-        self.status.setText(f"识别完成 · {len(text)} 个字符" if text else "未识别到文字，请选择更清晰的区域")
+        elapsed = perf_counter() - self.ocr_started
+        self.status.setText(f"识别完成 · {len(text)} 个字符 · {elapsed:.2f} 秒" if text else f"未识别到文字 · {elapsed:.2f} 秒，可尝试精细识别")
 
     def ocr_failed(self, message):
         self.busy = False

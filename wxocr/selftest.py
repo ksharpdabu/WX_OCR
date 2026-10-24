@@ -2,6 +2,8 @@
 import json
 import traceback
 from pathlib import Path
+from time import perf_counter
+from statistics import median
 
 
 def run(report_path):
@@ -23,6 +25,19 @@ def run(report_path):
             raise RuntimeError(errors[0])
         if not results or 'HELLO' not in results[0].upper() or '123' not in results[0] or '微信' not in results[0]:
             raise RuntimeError(f'OCR result mismatch: {results}')
+        times = []
+        for _ in range(3):
+            started = perf_counter()
+            worker.recognize(image)
+            times.append(perf_counter() - started)
+        if errors:
+            raise RuntimeError(errors[0])
+        original_engine = worker.engine
+        worker.recognize(image, True)
+        if worker.engine is not original_engine or not results or "微信" not in results[-1] or errors:
+            raise RuntimeError("Precise mode failed or reloaded the models")
+        report["warm_recognition_seconds"] = times
+        report["warm_median_seconds"] = median(times)
         from .app import MainWindow
         window = MainWindow()
         try:

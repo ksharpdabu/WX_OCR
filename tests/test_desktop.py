@@ -44,3 +44,28 @@ def test_real_ocr():
     assert not errors, errors
     assert "HELLO" in results[0].upper()
     assert "123" in results[0]
+
+
+def test_ui_recognition_queued_during_preparation():
+    from pathlib import Path
+    from PySide6.QtCore import QEventLoop, QTimer
+    from wxocr.app import MainWindow
+    window = MainWindow()
+    loop = QEventLoop()
+    timeout = QTimer()
+    timeout.setSingleShot(True)
+    timeout.timeout.connect(loop.quit)
+    window.worker.finished.connect(loop.quit)
+    window.worker.failed.connect(loop.quit)
+    try:
+        window.precise.setChecked(False)
+        window.set_image(QPixmap(str(Path(__file__).parents[1] / 'wxocr/assets/ocr-sample.png')))
+        window.recognize()
+        timeout.start(30000)
+        loop.exec()
+        assert not window.busy
+        assert '微信' in window.text.toPlainText()
+        assert '秒' in window.status.text()
+    finally:
+        timeout.stop()
+        window.shutdown()

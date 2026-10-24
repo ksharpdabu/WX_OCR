@@ -26,10 +26,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: QingJie-Windows-x64
-          path: |
-            dist/QingJie-Windows-x64.zip
-            dist/SHA256.txt
-            dist/self-test.json
+          path: dist/QingJie/
           if-no-files-found: error
           retention-days: 30
       - name: Upload diagnostics
@@ -39,4 +36,5 @@ jobs:
           name: windows-build-diagnostics
           path: |
             dist/self-test.json
+            dist/benchmark.json
             build/QingJie/warn-QingJie.txt
