@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from .capture import CaptureOverlay
 from .hotkeys import normalize_hotkey, pynput_hotkey
 from .ocr import OCRWorker
+from . import startup
 
 
 class MainWindow(QMainWindow):
@@ -22,7 +23,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("青截 0.2 · 截图与文字识别")
+        self.setWindowTitle("青截 0.3 · 截图与文字识别")
         self.resize(920, 680)
         self.settings = QSettings("WXOCR", "QingJie")
         self.listener = None
@@ -42,6 +43,8 @@ class MainWindow(QMainWindow):
         self.build_ui()
         self.build_tray()
         self.apply_hotkeys(initial=True)
+        if self.startup_read_error:
+            self.status.setText(self.startup_read_error)
         self.worker.prepared.connect(lambda: self.engine_status.setText("OCR 已就绪 · 模型常驻内存"))
         self.worker.preparation_failed.connect(self.engine_status.setText)
         self.thread.started.connect(self.worker.warmup)
@@ -92,7 +95,7 @@ class MainWindow(QMainWindow):
         r.addLayout(buttons)
         splitter.addWidget(right)
         layout.addWidget(splitter, 1)
-        group = QGroupBox("全局快捷键")
+        group = QGroupBox("设置")
         form = QFormLayout(group)
         self.capture_key = QLineEdit(self.settings.value("capture_key", "ctrl+alt+a"))
         self.ocr_key = QLineEdit(self.settings.value("ocr_key", "ctrl+alt+o"))
@@ -101,6 +104,21 @@ class MainWindow(QMainWindow):
         save = QPushButton("保存快捷键")
         save.clicked.connect(lambda: self.apply_hotkeys())
         form.addRow("例如 Ctrl+Alt+A / Cmd+Shift+A", save)
+        self.autostart = QCheckBox("开机启动（登录 Windows 后常驻托盘）")
+        self.autostart.setToolTip("立即生效，无需管理员权限。移动程序目录后，请取消再重新勾选。")
+        self.startup_read_error = None
+        if startup.SUPPORTED:
+            try:
+                self.autostart.setChecked(startup.is_enabled())
+            except OSError as exc:
+                self.autostart.setEnabled(False)
+                self.startup_read_error = f"无法读取开机启动设置：{exc}"
+                self.autostart.setToolTip(self.startup_read_error)
+        else:
+            self.autostart.setEnabled(False)
+            self.autostart.setToolTip("开机启动设置目前仅支持 Windows")
+        self.autostart.toggled.connect(self.set_autostart)
+        form.addRow("启动", self.autostart)
         layout.addWidget(group)
         self.status = QLabel("就绪 · 图片与识别结果仅保存在本机")
         self.status.setWordWrap(True)
@@ -108,6 +126,18 @@ class MainWindow(QMainWindow):
         self.engine_status = QLabel("OCR 正在后台准备 · 准备后可快速识别")
         layout.addWidget(self.engine_status)
         self.setStyleSheet("QMainWindow {background:#fafcfb} QPushButton {background:#e3f4e9;color:#155c3d;border:1px solid #c3e4d0;border-radius:6px;padding:9px;} QPushButton:hover {background:#c8ead6} QLineEdit,QTextEdit {background:white;border:1px solid #d3dfd7;border-radius:5px;padding:7px;} QGroupBox {border:1px solid #d3dfd7;border-radius:7px;margin-top:12px;padding-top:14px;}")
+
+    def set_autostart(self, enabled):
+        try:
+            startup.set_enabled(enabled)
+        except OSError as exc:
+            # Reflect the unchanged system setting when writing is rejected.
+            self.autostart.blockSignals(True)
+            self.autostart.setChecked(not enabled)
+            self.autostart.blockSignals(False)
+            self.status.setText(f"开机启动设置失败：{exc}")
+            return
+        self.status.setText("已开启开机启动，下次登录 Windows 后会常驻托盘" if enabled else "已关闭开机启动")
 
     def build_tray(self):
         icon = QPixmap(64, 64)
@@ -303,10 +333,16 @@ class MainWindow(QMainWindow):
         self.thread.wait()
 
 
+def show_initial_window(window, autostart=False):
+    # Never hide the app if the system has no tray from which to restore it.
+    if not autostart or not window.tray.isVisible():
+        window.show()
+
+
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("青截")
     window = MainWindow()
     app.aboutToQuit.connect(window.shutdown)
-    window.show()
+    show_initial_window(window, "--autostart" in sys.argv)
     sys.exit(app.exec())
