@@ -7,7 +7,7 @@ New-Item -ItemType Directory -Path dist -Force | Out-Null
 python main.py --benchmark dist/benchmark.json
 if ($LASTEXITCODE -ne 0) { throw 'OCR benchmark or accuracy check failed' }
 Get-Content dist/benchmark.json
-python -m PyInstaller --noconfirm --clean --windowed --name QingJie --collect-all rapidocr_onnxruntime --collect-all onnxruntime --add-data "wxocr/assets:wxocr/assets" --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 main.py
+python -m PyInstaller --noconfirm --clean --windowed --version-file packaging/windows-version.txt --name QingJie --collect-all rapidocr_onnxruntime --collect-all onnxruntime --add-data "wxocr/assets:wxocr/assets" --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 main.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed' }
 Copy-Item packaging/Windows使用说明.txt dist/QingJie/使用说明.txt
 python -m pip freeze | Out-File -Encoding utf8 dist/QingJie/build-dependencies.txt

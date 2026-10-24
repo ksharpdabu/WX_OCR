@@ -1,0 +1,52 @@
+name: Publish Windows release
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Build and validate versioned Windows packages
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag' }
+          ./packaging/build_release.ps1 -Version ($env:RELEASE_TAG.Substring(1))
+      - name: Preserve packages and reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: QingJie-${{ github.ref_name }}-Windows-x64-release
+          path: release/
+          if-no-files-found: error
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $notes = "packaging/release-notes/$env:RELEASE_TAG.md"
+          if (-not (Test-Path $notes)) { throw 'Release notes missing' }
+          gh release create $env:RELEASE_TAG --verify-tag --title "青截 $env:RELEASE_TAG" --notes-file $notes --draft (Get-ChildItem release -File | ForEach-Object FullName)
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release upload failed' }
+          gh release edit $env:RELEASE_TAG --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release publishing failed' }
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-diagnostics
+          path: |
+            dist/self-test.json
+            dist/benchmark.json
+            release/single-file-self-test.json
+            build/*/warn-*.txt

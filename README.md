@@ -2,6 +2,15 @@
 
 类似微信操作方式的桌面截图工具：拖动框选、复制到剪贴板、保存 PNG、本地中英文 OCR、全局快捷键和系统托盘。
 
+## 下载 Windows 版
+
+前往 [GitHub Releases](https://github.com/ksharpdabu/WX_OCR/releases/latest) 下载带版本号的 Windows 64 位程序，无需安装 Python：
+
+- `QingJie-v0.3.0-Windows-x64.exe`：单文件版，直接双击运行；启动时会解包运行库。
+- `QingJie-v0.3.0-Windows-x64-portable.zip`：推荐日常使用，完整解压后运行 `QingJie.exe`，保留 `_internal` 文件夹。
+
+更新前请从托盘退出旧版；移动目录后重新设置“开机启动”。仓库目前为私有，下载需有访问权限。Release 附有 SHA256 校验文件和自检报告。
+
 ## 效果截图
 
 以下为程序实际运行界面的离屏截图；Linux 下“开机启动”置灰，Windows 下可勾选。

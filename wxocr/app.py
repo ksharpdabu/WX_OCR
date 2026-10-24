@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from .capture import CaptureOverlay
 from .hotkeys import normalize_hotkey, pynput_hotkey
 from .ocr import OCRWorker
-from . import startup
+from . import startup, __version__
 
 
 class MainWindow(QMainWindow):
@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("青截 0.3 · 截图与文字识别")
+        self.setWindowTitle(f"青截 {__version__} · 截图与文字识别")
         self.resize(920, 680)
         self.settings = QSettings("WXOCR", "QingJie")
         self.listener = None
@@ -342,6 +342,7 @@ def show_initial_window(window, autostart=False):
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("青截")
+    app.setApplicationVersion(__version__)
     window = MainWindow()
     app.aboutToQuit.connect(window.shutdown)
     show_initial_window(window, "--autostart" in sys.argv)
