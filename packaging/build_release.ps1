@@ -21,7 +21,7 @@ Remove-Item Env:QT_QPA_PLATFORM
 Copy-Item $singleExe release/
 Compress-Archive -Path dist/QingJie/* -DestinationPath "release/$singleName-portable.zip" -Force
 Copy-Item dist/benchmark.json, dist/self-test.json release/
-Copy-Item packaging/Windows使用说明.txt release/使用说明.txt
+Copy-Item packaging/Windows使用说明.txt release/Windows-README.txt
 Get-ChildItem release -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
     $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash  $($_.Name)"

@@ -3,10 +3,16 @@ on:
   push:
     tags:
       - 'v*.*.*'
+    branches: [main]
+    paths:
+      - 'packaging/build_release.ps1'
+      - 'packaging/refresh_release_metadata.py'
+      - '.github/workflows/windows-release.yml'
 permissions:
   contents: write
 jobs:
   release:
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-2022
     timeout-minutes: 25
     steps:
@@ -50,3 +56,13 @@ jobs:
             dist/benchmark.json
             release/single-file-self-test.json
             build/*/warn-*.txt
+  metadata:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refresh existing release attachment names and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python packaging/refresh_release_metadata.py
