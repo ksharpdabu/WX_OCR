@@ -9,6 +9,10 @@ if ($LASTEXITCODE -ne 0) { throw 'OCR benchmark or accuracy check failed' }
 Get-Content dist/benchmark.json
 python -m PyInstaller --noconfirm --clean --windowed --version-file packaging/windows-version.txt --name QingJie --collect-all rapidocr_onnxruntime --collect-all onnxruntime --add-data "wxocr/assets:wxocr/assets" --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 main.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed' }
+$version = python -c 'from wxocr import __version__; print(__version__)'
+if ($LASTEXITCODE -ne 0) { throw 'Source version could not be read' }
+$info = (Get-Item dist/QingJie/QingJie.exe).VersionInfo
+if ($info.FileVersion -ne "$version.0" -or $info.ProductVersion -ne $version) { throw 'EXE version resource mismatch' }
 Copy-Item packaging/Windows使用说明.txt dist/QingJie/使用说明.txt
 python -m pip freeze | Out-File -Encoding utf8 dist/QingJie/build-dependencies.txt
 $env:QT_QPA_PLATFORM = 'offscreen'

@@ -22,6 +22,7 @@ def test_hidpi_crop_and_cancel():
     assert results[0][0].size().width() == 200
     assert results[0][0].size().height() == 160
     assert results[0][1] == "copy"
+    overlay = CaptureOverlay(app.primaryScreen(), image)
     cancelled = []
     overlay.cancelled.connect(lambda: cancelled.append(True))
     overlay.complete("cancel")

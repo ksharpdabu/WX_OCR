@@ -7,7 +7,8 @@ from statistics import median
 
 
 def run(report_path):
-    report = {"ok": False}
+    from . import __version__
+    report = {"ok": False, "version": __version__}
     try:
         from PySide6.QtWidgets import QApplication
         from PySide6.QtGui import QImage
@@ -62,6 +63,8 @@ def run(report_path):
                     startup.set_enabled(False)
                 finally:
                     startup.VALUE_NAME = previous_name
+        from .annotation_checks import verify_annotations
+        report['screenshot_annotations'] = verify_annotations(app)
         from .app import MainWindow
         window = MainWindow()
         try:
