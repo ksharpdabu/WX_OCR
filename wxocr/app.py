@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
         self.worker.finished.connect(self.ocr_finished)
         self.worker.failed.connect(self.ocr_failed)
         self.thread.finished.connect(self.worker.deleteLater)
-        self.capture_requested.connect(self.capture)
+        self.capture_requested.connect(self.capture_from_hotkey)
         self.hotkey_failed.connect(self.report_hotkey_error)
         self.build_ui()
         self.build_tray()
@@ -200,14 +200,17 @@ class MainWindow(QMainWindow):
     def report_hotkey_error(self, message):
         self.status.setText(f"快捷键不可用：{message}。仍可使用窗口或托盘按钮。")
 
-    def capture(self, auto_ocr=False):
+    def capture_from_hotkey(self, auto_ocr=False):
+        self.capture(auto_ocr, restore_window=False)
+
+    def capture(self, auto_ocr=False, restore_window=True):
         if self.busy:
             self.status.setText("请等待当前识别完成后再截图")
             return
         if self.capturing:
             return
         self.capturing = True
-        self.was_visible = self.isVisible()
+        self.was_visible = restore_window and self.isVisible()
         self.hide()
         QTimer.singleShot(250, lambda: self.start_capture(auto_ocr))
 
@@ -238,7 +241,8 @@ class MainWindow(QMainWindow):
     def captured(self, pixmap, action):
         self.capturing = False
         self.set_image(pixmap)
-        self.reveal()
+        if action == "ocr" or self.was_visible:
+            self.reveal()
         if action == "copy":
             self.copy_image()
         elif action == "save":
