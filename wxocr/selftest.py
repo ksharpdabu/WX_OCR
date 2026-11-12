@@ -11,7 +11,7 @@ def run(report_path):
     report = {"ok": False, "version": __version__}
     try:
         from PySide6.QtWidgets import QApplication
-        from PySide6.QtGui import QImage
+        from PySide6.QtGui import QImage, QPixmap
         from .ocr import OCRWorker
         app = QApplication.instance() or QApplication([])
         image = QImage(str(Path(__file__).parent / 'assets' / 'ocr-sample.png'))
@@ -70,6 +70,14 @@ def run(report_path):
         try:
             window.show()
             app.processEvents()
+            window.hide()
+            window.captured(QPixmap.fromImage(image), 'copy')
+            if window.isVisible():
+                raise RuntimeError('Copying a screenshot unexpectedly opened the main window')
+            clipboard_image = app.clipboard().image()
+            if clipboard_image.size() != image.size():
+                raise RuntimeError('Copied screenshot did not reach the clipboard')
+            report['copy_keeps_window_hidden'] = True
             report.update(ok=True, ocr_text=results[0], window_created=True)
         finally:
             window.shutdown()
