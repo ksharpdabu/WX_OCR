@@ -238,13 +238,14 @@ class MainWindow(QMainWindow):
     def captured(self, pixmap, action):
         self.capturing = False
         self.set_image(pixmap)
-        self.reveal()
         if action == "copy":
             self.copy_image()
-        elif action == "save":
-            self.save_image()
-        elif action == "ocr":
-            self.recognize()
+        else:
+            self.reveal()
+            if action == "save":
+                self.save_image()
+            elif action == "ocr":
+                self.recognize()
 
     def set_image(self, pixmap):
         self.image = pixmap
